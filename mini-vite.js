@@ -8,12 +8,24 @@ app.use(async ctx => {
     const { url } = ctx.request
     if(url === '/') {
         ctx.type = "text/html"
-        ctx.body = fs.readFileSync('./index.html', 'utf8')
+        const indexPath = path.resolve(__dirname, './index.html')
+        ctx.body = fs.readFileSync(indexPath, 'utf8')
     } else if(url.endsWith('.js')) {
         // 响应JS请求
         const jsPath = path.join(__dirname, url) // 转成绝对地址进行加载
         ctx.type = "text/javascript" // 告诉浏览器这是一个JavaScript文件
-        ctx.body = rewriteImport(fs.readFileSync(jsPath, 'utf8'))
+        const file = rewriteImport(fs.readFileSync(jsPath, 'utf8'))
+        ctx.body = file
+    } else if(url.startsWith('/@modules/')) {
+        // 获取@modules后面的部分，模块名称
+        const moduleName = url.replace('/@modules/', '')
+        const prefix = path.join(__dirname, './node_modules', moduleName)
+        // 要加载文件的地址
+        const module = require(prefix + '/package.json').module
+        const filePath = path.join(prefix, module)
+        const res = fs.readFileSync(filePath, 'utf8')
+        ctx.type = "text/javascript" 
+        ctx.body = rewriteImport(res)
     }
 })
 
@@ -21,7 +33,7 @@ app.use(async ctx => {
  * 重新导入，变成相对地址
  */
 function rewriteImport(content) {
-    content.replace(/ from ['"](.*)['"]/g, function(s0, s1) {
+    return content.replace(/ from ['|"](.*)['|"]/g, function(s0, s1) {
         // s0匹配字符串，s1分组内容
         // 看看是不是相对地址
         if(s1.startsWith('.') || s1.startsWith('/') || s1.startsWith('../')) {

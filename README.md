@@ -97,7 +97,7 @@ createApp({
  * 重新导入，变成相对地址
  */
 function rewriteImport(content) {
-    content.replace(/ from ['"](.*)['"]/g, function(s0, s1) {
+    return content.replace(/ from ['|"](.*)['|"]/g, function(s0, s1) {
         // s0匹配字符串，s1分组内容
         // 看看是不是相对地址
         if(s1.startsWith('.') || s1.startsWith('/') || s1.startsWith('../')) {
