@@ -110,3 +110,54 @@ function rewriteImport(content) {
 }
 ```
 
+我们发现main.js里的vue模块地址已经被处理成`'/@modules/vue'`了。
+
+ ![](./md/04.png)
+
+而且也向Vite服务器进行了请求
+
+ ![](./md/041.png)
+
+接下来我们需要响应这个请求
+
+首先一个正规的npm包的根目录肯定有一个package.json的文件，这个文件会有一个`module` 的字段记录着这个包的输出文件地址，比如我们要请求的这个vue包，它的根目录的package.json里的module字段信息是这样的：
+
+ ![](./md/042.png)
+
+依赖加载代码
+
+```javascript
+if(url.startsWith('/@modules/')) {
+    // 获取@modules后面的部分，模块名称
+    const moduleName = url.replace('/@modules/', '')
+    const prefix = path.join(__dirname, './node_modules', moduleName)
+    // 要加载文件的地址
+    const module = require(prefix + '/package.json').module
+    const filePath = path.join(prefix, module)
+    const res = fs.readFileSync(filePath, 'utf8')
+    ctx.type = "text/javascript" 
+    ctx.body = rewriteImport(res) // 在其内部可能还存在import代码，所以也需要重写一下
+ }
+```
+
+这个时候我们发现除了vue文件，还加载了很多其他的包
+
+ ![](./md/043.png)
+
+这个时候需要在index.html里模拟一个node服务器变量
+
+```html
+<script>
+  window.process = { env: { NODE_ENV: 'dev' } }
+</script>
+<script type="module" src="./src/main.js"></script>
+```
+
+不然会报一个错误
+
+ ![](./md/044.png)
+
+模拟完node服务器变量之后，就成功渲染了
+
+ ![](./md/05.png)
+
