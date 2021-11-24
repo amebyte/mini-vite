@@ -185,7 +185,9 @@ export default {
 然后再main.js里引入
 
 ```javascript
+import { createApp } from 'vue'
 import App from './App.vue'
+createApp(App).mount("#app")
 ```
 
 发现报错了，因为我们还没对vue文件的请求进行处理

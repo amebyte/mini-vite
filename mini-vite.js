@@ -3,10 +3,11 @@ const app = new Koa()
 const fs = require('fs')
 const path = require('path')
 const compilerSfc = require('@vue/compiler-sfc')
+const compilerDom = require('@vue/compiler-dom')
 
 // 返回用户首页
 app.use(async ctx => {
-    const { url } = ctx.request
+    const { url, query } = ctx.request
     if(url === '/') {
         ctx.type = "text/html"
         const indexPath = path.resolve(__dirname, './index.html')
@@ -29,23 +30,34 @@ app.use(async ctx => {
         ctx.body = rewriteImport(res)
     } else if(url.indexOf('.vue') > -1) {
         // 读取vue文件内容
-        const vuePath = path.join(__dirname, url)
+        const vuePath = path.join(__dirname, url.split('?')[0])
         // compilerSfc解析SFC，得到一个ast
         const res = compilerSfc.parse(fs.readFileSync(vuePath, 'utf8'))
-        // 处理内部script
+        
+        // 没有query.type，则说明是sfc请求
+        if(!query.type) {
+            // 处理内部script
 
-        // 获取脚本内容
-        const scriptConent = res.descriptor.script.content
-        // 转换默认导出配置对象为变量
-        const script = scriptConent.replace('export default ', 'const __script = ')
-        ctx.type = 'text/javascript'
-        ctx.body = `
-            ${rewriteImport(script)}
-            // template 解析转换为另一个请求单独做
-            import { render as __render } from '${url}?type=template'
-            __script.render = __render
-            export default __script
-        `
+            // 获取脚本内容
+            const scriptConent = res.descriptor.script.content
+            // 转换默认导出配置对象为变量
+            const script = scriptConent.replace('export default ', 'const __script = ')
+            ctx.type = 'text/javascript'
+            ctx.body = `
+                ${rewriteImport(script)}
+                // template 解析转换为另一个请求单独做
+                import { render as __render } from '${url}?type=template'
+                __script.render = __render
+                export default __script
+            `
+        } else if(query.type === 'template') {
+            const tpl = res.descriptor.template.content
+            // 编译为包含render模块的文件
+            const render = compilerDom.compile(tpl, { mode: 'module' }).code
+            ctx.type = 'text/javascript'
+            ctx.body = rewriteImport(render)
+        }
+        
     }
 })
 

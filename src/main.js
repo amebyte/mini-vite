@@ -1,5 +1,3 @@
-import { createApp, h } from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
-createApp({
-    render: () => h("h1", "hello mini vite !")
-}).mount("#app")
+createApp(App).mount("#app")
