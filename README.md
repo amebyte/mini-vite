@@ -161,3 +161,34 @@ if(url.startsWith('/@modules/')) {
 
  ![](./md/05.png)
 
+解析vue文件
+
+新建一个App.vue文件
+
+```javascript
+<template>
+    <div>
+        {{title}}
+    </div>
+</template>
+<script>
+import { ref } from 'vue'
+export default {
+    setup () {
+        const title = ref('hello, coboy ~')
+        return { title }
+    }
+}
+</script>
+```
+
+然后再main.js里引入
+
+```javascript
+import App from './App.vue'
+```
+
+发现报错了，因为我们还没对vue文件的请求进行处理
+
+ ![](./md/06.png)
+

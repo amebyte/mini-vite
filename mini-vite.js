@@ -2,6 +2,7 @@ const Koa = require('koa')
 const app = new Koa()
 const fs = require('fs')
 const path = require('path')
+const compilerSfc = require('@vue/compiler-sfc')
 
 // 返回用户首页
 app.use(async ctx => {
@@ -26,6 +27,25 @@ app.use(async ctx => {
         const res = fs.readFileSync(filePath, 'utf8')
         ctx.type = "text/javascript" 
         ctx.body = rewriteImport(res)
+    } else if(url.indexOf('.vue') > -1) {
+        // 读取vue文件内容
+        const vuePath = path.join(__dirname, url)
+        // compilerSfc解析SFC，得到一个ast
+        const res = compilerSfc.parse(fs.readFileSync(vuePath, 'utf8'))
+        // 处理内部script
+
+        // 获取脚本内容
+        const scriptConent = res.descriptor.script.content
+        // 转换默认导出配置对象为变量
+        const script = scriptConent.replace('export default ', 'const __script = ')
+        ctx.type = 'text/javascript'
+        ctx.body = `
+            ${rewriteImport(script)}
+            // template 解析转换为另一个请求单独做
+            import { render as __render } from '${url}?type=template'
+            __script.render = __render
+            export default __script
+        `
     }
 })
 
@@ -46,5 +66,5 @@ function rewriteImport(content) {
 }
 
 app.listen(9527, () => {
-    console.log("mini vite start ~")
+    console.log("mini vite start at 9527 ~")
 })
