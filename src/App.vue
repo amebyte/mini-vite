@@ -1,5 +1,6 @@
 <template>
     <div>
+        <img src="./assets/avatar.jpg" />
         {{title}}
     </div>
 </template>

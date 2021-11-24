@@ -58,6 +58,8 @@ app.use(async ctx => {
             ctx.body = rewriteImport(render)
         }
         
+    } else if(url.endsWith('.jpg')) {
+        ctx.body = fs.readFileSync('src' + url)
     }
 })
 
