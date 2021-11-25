@@ -1,16 +1,18 @@
 # mini-vite
 
-初始化一个新项目
+### 初始化一个新项目
 
 ```
 npm init -y
 ```
 
-安装Koa
+### 安装Koa
 
 ```
 yarn add koa
 ```
+
+### 构建一个koa服务器
 
 在根目录建一个mini-vite.js文件构建一个koa服务器
 
@@ -65,6 +67,8 @@ if(url === '/') {
 
  ![](./md/02.png)
 
+### 在main.js里写vue3应用
+
 接下来我们安装一下Vue3，在main.js里写vue3应用
 
 ```
@@ -79,6 +83,8 @@ createApp({
     render: () => h("h1", "hello mini vite !")
 }).mount("#app")
 ```
+
+### Vite加载模块地址的处理
 
 我们这样写了一个Vue3应用了之后发现浏览器报错了
 
@@ -120,6 +126,8 @@ function rewriteImport(content) {
 
 接下来我们需要响应这个请求
 
+### 如何加载node_module里的包
+
 首先一个正规的npm包的根目录肯定有一个package.json的文件，这个文件会有一个`module` 的字段记录着这个包的输出文件地址，比如我们要请求的这个vue包，它的根目录的package.json里的module字段信息是这样的：
 
  ![](./md/042.png)
@@ -144,6 +152,8 @@ if(url.startsWith('/@modules/')) {
 
  ![](./md/043.png)
 
+### 模拟一个node服务器变量
+
 这个时候需要在index.html里模拟一个node服务器变量
 
 ```html
@@ -161,7 +171,7 @@ if(url.startsWith('/@modules/')) {
 
  ![](./md/05.png)
 
-解析vue文件
+### 解析vue文件
 
 新建一个App.vue文件
 
@@ -189,6 +199,8 @@ import { createApp } from 'vue'
 import App from './App.vue'
 createApp(App).mount("#app")
 ```
+
+#### 解析SFC文件
 
 发现报错了，因为我们还没对vue文件的请求进行处理
 
@@ -235,6 +247,8 @@ ctx.body = `
 `
 ```
 
+#### tamplate模版编译
+
 接下来我们需要处理模版的编译就需要一个新的角色出现了`@vue/compiler-dom` 
 
 ```
@@ -251,7 +265,7 @@ if(query.type === 'template') {
 }
 ```
 
-css处理
+#### style模块处理
 
 我们在App.vue里加一个style的css模块
 
@@ -275,4 +289,53 @@ console.log(res.descriptor.styles)
 
  ![](./md/081.png)
 
-我们就可以很清晰地看到styles里的内容了
+我们就可以很清晰地看到styles里的内容了，然后我们再模拟style的请求，因为styles是个数组可能存在多次请求，还有它的语言标记
+
+```javascript
+// 获取styles内容
+const styles = res.descriptor.styles
+let importCss = ''
+if(styles.length > 0) {
+    styles.forEach((o, i)=> {
+        importCss += `import '${url}?type=style&index=${i}&lang=${o.lang}'\n`
+    })
+}
+ctx.type = 'text/javascript'
+ctx.body = `
+    ${rewriteImport(script)}
+    // template 解析转换为另一个请求单独处理
+    import { render as __render } from '${url}?type=template'
+    ${importCss}
+    __script.render = __render
+    export default __script
+`
+```
+
+然后我们就看到了浏览器多了一个请求，然后我们就可以根据这个请求参数做相应的处理了
+
+ ![](./md/082.png)
+
+```javascript
+if(query.type === 'style') {
+    // 获取styles内容
+    const styles = res.descriptor.styles
+    const index = query.index
+    // 可以根据lang是less还是scss，然后用相应的处理器进行处理
+    const lang = query.lang 
+    const content = `
+    const css = "${styles[index].content.replace(/[\n\r]/g, "")}"
+    let link = document.createElement('style')
+    link.setAttribute('type', 'text/css')
+    document.head.appendChild(link)
+    link.innerHTML = css
+    export default css
+    `
+    ctx.type = 'application/javascript'
+    ctx.body = content
+}
+```
+
+接下来我们就看到样式处理成功了，背景颜色被改变了
+
+ ![](./md/083.png)
+

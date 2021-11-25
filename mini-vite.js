@@ -42,11 +42,20 @@ app.use(async ctx => {
             const scriptConent = res.descriptor.script.content
             // 转换默认导出配置对象为变量
             const script = scriptConent.replace('export default ', 'const __script = ')
+            // 获取styles内容
+            const styles = res.descriptor.styles
+            let importCss = ''
+            if(styles.length > 0) {
+                styles.forEach((o, i)=> {
+                    importCss += `import '${url}?type=style&index=${i}&lang=${o.lang}'\n`
+                })
+            }
             ctx.type = 'text/javascript'
             ctx.body = `
                 ${rewriteImport(script)}
                 // template 解析转换为另一个请求单独处理
                 import { render as __render } from '${url}?type=template'
+                ${importCss}
                 __script.render = __render
                 export default __script
             `
@@ -56,6 +65,21 @@ app.use(async ctx => {
             const render = compilerDom.compile(tpl, { mode: 'module' }).code
             ctx.type = 'text/javascript'
             ctx.body = rewriteImport(render)
+        } else if(query.type === 'style') {
+            // 获取styles内容
+            const styles = res.descriptor.styles
+            const index = query.index
+            const lang = query.lang // 可以根据lang是less还是scss，然后用相应的处理器进行处理
+            const content = `
+            const css = "${styles[index].content.replace(/[\n\r]/g, "")}"
+            let link = document.createElement('style')
+            link.setAttribute('type', 'text/css')
+            document.head.appendChild(link)
+            link.innerHTML = css
+            export default css
+            `
+            ctx.type = 'application/javascript'
+            ctx.body = content
         }
         
     } else if(url.endsWith('.jpg')) {
