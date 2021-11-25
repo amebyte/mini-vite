@@ -194,3 +194,25 @@ createApp(App).mount("#app")
 
  ![](./md/06.png)
 
+解析VUE文件就需要用到`@vue/compiler-sfc`模块
+
+```
+const compilerSfc = require('@vue/compiler-sfc')
+```
+
+读取请求的vue文件然后用compilerSfc.parse方法可以解析vue文件内容得到一个ast
+
+```
+if(url.indexOf('.vue') > -1) {
+        // 读取vue文件内容
+        const vuePath = path.join(__dirname, url.split('?')[0])
+        // compilerSfc解析SFC，得到一个ast
+        const res = compilerSfc.parse(fs.readFileSync(vuePath, 'utf8'))
+        console.log(res)
+}
+```
+
+打印compilerSfc.parse解析SFC文件的结果：
+
+ ![](./md/07.png)
+
