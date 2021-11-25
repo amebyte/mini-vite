@@ -45,7 +45,7 @@ app.use(async ctx => {
             ctx.type = 'text/javascript'
             ctx.body = `
                 ${rewriteImport(script)}
-                // template 解析转换为另一个请求单独做
+                // template 解析转换为另一个请求单独处理
                 import { render as __render } from '${url}?type=template'
                 __script.render = __render
                 export default __script

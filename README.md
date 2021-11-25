@@ -202,17 +202,52 @@ const compilerSfc = require('@vue/compiler-sfc')
 
 读取请求的vue文件然后用compilerSfc.parse方法可以解析vue文件内容得到一个ast
 
-```
+```javascript
 if(url.indexOf('.vue') > -1) {
         // 读取vue文件内容
         const vuePath = path.join(__dirname, url.split('?')[0])
         // compilerSfc解析SFC，得到一个ast
         const res = compilerSfc.parse(fs.readFileSync(vuePath, 'utf8'))
-        console.log(res)
+        console.log('ast', res)
 }
 ```
 
 打印compilerSfc.parse解析SFC文件的结果：
 
  ![](./md/07.png)
+
+我们看到打印的结果描述了App.vue的结构，分别tamplate模块的内容放在了tamplate的字段上，script标签模块的内容放在了script字段上，而tamplate字段模块还要进行进一步的编译得到一个render渲染函数，然后赋值给script字段内的render函数，**其实就是把SFC组件编译成JSX组件**。清楚原理之后，我们继续。
+
+先把script部分的内容先进行返回，先要对script的默认导出转换成一个变量，并且script内部还可能存在import模块，需要对script内容进行import重写。而tamplate部分的内容则进行构建一个import进行重写，变成新的一个请求
+
+```javascript
+// 获取脚本内容
+const scriptConent = res.descriptor.script.content
+// 转换默认导出配置对象为变量
+const script = scriptConent.replace('export default ', 'const __script = ')
+ctx.type = 'text/javascript'
+ctx.body = `
+    ${rewriteImport(script)}
+    // template 解析转换为另一个请求单独处理
+    import { render as __render } from '${url}?type=template'
+    __script.render = __render
+    export default __script
+`
+```
+
+接下来我们需要处理模版的编译就需要一个新的角色出现了`@vue/compiler-dom` 
+
+```
+const compilerDom = require('@vue/compiler-dom')
+```
+
+```javascript
+if(query.type === 'template') {
+    const tpl = res.descriptor.template.content
+    // 编译为包含render模块的文件
+    const render = compilerDom.compile(tpl, { mode: 'module' }).code
+    ctx.type = 'text/javascript'
+    ctx.body = rewriteImport(render)
+}
+```
 
