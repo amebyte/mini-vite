@@ -33,7 +33,7 @@ app.use(async ctx => {
         const vuePath = path.join(__dirname, url.split('?')[0])
         // compilerSfc解析SFC，得到一个ast
         const res = compilerSfc.parse(fs.readFileSync(vuePath, 'utf8'))
-        console.log('ast', res)
+        console.log('ast', res,  res.descriptor.styles)
         // 没有query.type，则说明是sfc请求
         if(!query.type) {
             // 处理内部script

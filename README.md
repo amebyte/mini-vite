@@ -251,3 +251,28 @@ if(query.type === 'template') {
 }
 ```
 
+css处理
+
+我们在App.vue里加一个style的css模块
+
+```html
+<style lang="less">
+.container{
+    background-color: green;
+}
+</style>
+```
+
+然后我们重新打印看看刚才那个compilerSfc.parse解析SFC文件的结果发现styles数组字段里多了一个Object。
+
+ ![](./md/08.png)
+
+我们再进一步打印styles来看
+
+```javascript
+console.log(res.descriptor.styles)
+```
+
+ ![](./md/081.png)
+
+我们就可以很清晰地看到styles里的内容了
